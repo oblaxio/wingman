@@ -16,7 +16,7 @@ import (
 
 type Service struct {
 	Entrypoint   string
-	Output       string
+	Executable   string
 	Env          map[string]string
 	Dependencies map[string]string
 	Module       string
@@ -30,7 +30,7 @@ type Service struct {
 func NewService(service string, rootPath string) (*Service, error) {
 	s := &Service{
 		Entrypoint:   config.Get().Services[service].Entrypoint,
-		Output:       config.Get().Services[service].Output,
+		Executable:   config.Get().Services[service].Executable,
 		Env:          config.Get().Services[service].Env,
 		Module:       config.Get().Module,
 		Dependencies: make(map[string]string),
@@ -79,7 +79,7 @@ func (s *Service) CheckDependency(pkg string) bool {
 }
 
 func (s *Service) Start() error {
-	cmd := fmt.Sprintf("./%s", s.Output)
+	cmd := fmt.Sprintf("./%s", s.Executable)
 	s.Instance = exec.Command(cmd)
 	s.Instance.Dir = fmt.Sprintf("%s/%s", s.Path, s.BuildDir)
 	for k, v := range s.Env {
@@ -131,7 +131,7 @@ func (s *Service) printStdout() error {
 	go func() {
 		for scanner.Scan() {
 			// fmt.Printf("[%s]: %s\n", s.Output, scanner.Text())
-			print.PrintSvcOut(s.Output, scanner.Text())
+			print.PrintSvcOut(s.Executable, scanner.Text())
 		}
 	}()
 	s.Instance.StderrPipe()
@@ -147,7 +147,7 @@ func (s *Service) printStderr() error {
 	go func() {
 		for scanner.Scan() {
 			// fmt.Printf("[%s]: %s\n", s.Output, scanner.Text())
-			print.PrintSvcErr(s.Output, scanner.Text())
+			print.PrintSvcErr(s.Executable, scanner.Text())
 		}
 	}()
 	s.Instance.StderrPipe()

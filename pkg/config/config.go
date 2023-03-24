@@ -27,11 +27,11 @@ type Config struct {
 
 type ServiceConfig struct {
 	Entrypoint string            `yaml:"entrypoint"`
-	Output     string            `yaml:"output"`
+	Executable string            `yaml:"executable"`
 	Env        map[string]string `yaml:"env"`
 }
 
-func Read(filePath string) error {
+func NewConfigFromFile(filePath string) error {
 	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("bad config file '%s', or no config file specified", filePath)
 	}
