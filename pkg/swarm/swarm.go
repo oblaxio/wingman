@@ -8,30 +8,12 @@ import (
 	"github.com/oblaxio/wingman/pkg/service"
 )
 
-type ServiceSwarmOption func(*ServiceSwarm) error
-
-// type ServiceSwarm []*service.Service
-
 type ServiceSwarm struct {
-	config *config.Config
-	swarm  []*service.Service
+	swarm []*service.Service
 }
 
-func NewServiceSwarm(options ...ServiceSwarmOption) (*ServiceSwarm, error) {
-	s := &ServiceSwarm{}
-	for _, o := range options {
-		if err := o(s); err != nil {
-			return nil, err
-		}
-	}
-	return s, nil
-}
-
-func WithConfig(config *config.Config) ServiceSwarmOption {
-	return func(s *ServiceSwarm) error {
-		s.config = config
-		return nil
-	}
+func NewServiceSwarm() *ServiceSwarm {
+	return &ServiceSwarm{}
 }
 
 func (sw *ServiceSwarm) Append(svc *service.Service) {
@@ -54,7 +36,7 @@ func (sw *ServiceSwarm) RunServices() error {
 		if err := s.Start(); err != nil {
 			return err
 		}
-		print.PrintInfo(s.Executable + " service started")
+		print.Info(s.Executable + " service started")
 		sw.Append(s)
 	}
 

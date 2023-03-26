@@ -7,20 +7,25 @@ import (
 )
 
 var (
-	cyan  = color.New(color.FgCyan).SprintFunc()
-	green = color.New(color.FgGreen).SprintFunc()
-	red   = color.New(color.FgRed).SprintFunc()
-	bold  = color.New(color.Bold).SprintFunc()
+	cyan   = color.New(color.FgCyan).SprintFunc()
+	green  = color.New(color.FgGreen).SprintFunc()
+	red    = color.New(color.FgRed).SprintFunc()
+	bold   = color.New(color.Bold).SprintFunc()
+	yellow = color.New(color.FgYellow).SprintFunc()
 )
 
-func PrintInfo(msg string) {
+func Info(msg string) {
 	fmt.Printf("%s %s\n", cyan("[INFO]"), bold(msg))
 }
 
-func PrintSvcOut(service string, msg string) {
+func Rebuild(msg string) {
+	fmt.Printf("%s %s\n", yellow("[REBUILD]"), bold(msg))
+}
+
+func SvcOut(service string, msg string) {
 	fmt.Printf("%s\t %s\n", green("["+service+"]"), msg)
 }
 
-func PrintSvcErr(service string, msg string) {
+func SvcErr(service string, msg string) {
 	fmt.Printf("%s\t %s\n", red("["+service+"]"), msg)
 }

@@ -56,9 +56,10 @@ func (s *Service) GetDependencies() error {
 		p = strings.TrimSpace(p)
 		if strings.HasPrefix(p, s.Module) {
 			s.Dependencies[p] = p
-			// s.Dependencies = append(s.Dependencies, p)
 		}
 	}
+	mainPkg := s.Module + "/" + s.Entrypoint
+	s.Dependencies[mainPkg] = mainPkg
 	return nil
 }
 
@@ -89,17 +90,24 @@ func (s *Service) Start() error {
 	}
 	s.printStdout()
 	s.printStderr()
-
 	if err := s.Instance.Start(); err != nil {
 		return err
 	}
+	go s.crashHandler()
 	return nil
 }
 
-func (s *Service) Stop() error {
+func (s *Service) crashHandler() {
 	if err := s.Instance.Wait(); err != nil {
-		return err
+		if err := s.Start(); err != nil {
+			print.SvcErr(s.Executable, err.Error())
+			return
+		}
+		print.Info(s.Executable + " service started")
 	}
+}
+
+func (s *Service) Stop() error {
 	if err := s.Instance.Process.Kill(); err != nil {
 		return err
 	}
@@ -131,10 +139,9 @@ func (s *Service) printStdout() error {
 	go func() {
 		for scanner.Scan() {
 			// fmt.Printf("[%s]: %s\n", s.Output, scanner.Text())
-			print.PrintSvcOut(s.Executable, scanner.Text())
+			print.SvcOut(s.Executable, scanner.Text())
 		}
 	}()
-	s.Instance.StderrPipe()
 	return nil
 }
 
@@ -147,9 +154,8 @@ func (s *Service) printStderr() error {
 	go func() {
 		for scanner.Scan() {
 			// fmt.Printf("[%s]: %s\n", s.Output, scanner.Text())
-			print.PrintSvcErr(s.Executable, scanner.Text())
+			print.SvcErr(s.Executable, scanner.Text())
 		}
 	}()
-	s.Instance.StderrPipe()
 	return nil
 }

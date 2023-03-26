@@ -7,23 +7,20 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/oblaxio/wingman/pkg/config"
+	"github.com/oblaxio/wingman/pkg/print"
 	"github.com/oblaxio/wingman/pkg/swarm"
 )
 
 type SourceWatcherOption func(*SourceWatcher) error
 
 type SourceWatcher struct {
-	config  *config.Config
 	watcher *fsnotify.Watcher
 	swarm   *swarm.ServiceSwarm
 }
 
-func NewWatcher(options ...SourceWatcherOption) (*SourceWatcher, error) {
-	w := &SourceWatcher{}
-	for _, option := range options {
-		if err := option(w); err != nil {
-			return nil, err
-		}
+func NewWatcher(swarm *swarm.ServiceSwarm) (*SourceWatcher, error) {
+	w := &SourceWatcher{
+		swarm: swarm,
 	}
 	var err error
 	w.watcher, err = fsnotify.NewWatcher()
@@ -36,20 +33,6 @@ func NewWatcher(options ...SourceWatcherOption) (*SourceWatcher, error) {
 		}
 	}
 	return w, nil
-}
-
-func WithConfig(config *config.Config) SourceWatcherOption {
-	return func(w *SourceWatcher) error {
-		w.config = config
-		return nil
-	}
-}
-
-func WithSwarm(swarm *swarm.ServiceSwarm) SourceWatcherOption {
-	return func(w *SourceWatcher) error {
-		w.swarm = swarm
-		return nil
-	}
 }
 
 func (w *SourceWatcher) Start() error {
@@ -65,6 +48,7 @@ func (w *SourceWatcher) Start() error {
 					for _, s := range w.swarm.List() {
 						if s != nil {
 							if s.CheckDependency(event.Name) {
+								print.Info("Change detected in " + s.Executable + " dependency. Rebuilding and restarting service...")
 								if err := s.Stop(); err != nil {
 									fmt.Println(err)
 								}

@@ -23,21 +23,13 @@ func StartHandler(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	// create service swarm
-	swm, err := swarm.NewServiceSwarm(
-		swarm.WithConfig(config.Get()),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
+	swm := swarm.NewServiceSwarm()
 	// start services
 	if err := swm.RunServices(); err != nil {
 		log.Fatal(err)
 	}
 	// setup source watcher
-	sw, err := sourcewatcher.NewWatcher(
-		sourcewatcher.WithConfig(config.Get()),
-		sourcewatcher.WithSwarm(swm),
-	)
+	sw, err := sourcewatcher.NewWatcher(swm)
 	if err != nil {
 		log.Fatal(err)
 	}

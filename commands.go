@@ -23,7 +23,7 @@ var startCmd = &cobra.Command{
 	Use:     "start",
 	Aliases: []string{"s"},
 	Short:   "Runs the wingman project from the config file",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	Run:     handlers.StartHandler,
 }
 
