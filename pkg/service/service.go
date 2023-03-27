@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"fmt"
 
-	// "os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/oblaxio/wingman/pkg/config"
 	"github.com/oblaxio/wingman/pkg/print"
+	"golang.org/x/exp/maps"
 )
 
 type Service struct {
@@ -38,15 +38,16 @@ func NewService(service string, rootPath string) (*Service, error) {
 		Instance:     nil,
 		BuildDir:     config.Get().BuildDir,
 	}
+	// copy global env to service env to avoid overriding or two assignment for loops
+	maps.Copy(s.Env, config.Get().Env)
 	return s, nil
 }
 
 func (s *Service) GetDependencies() error {
 	cmd := exec.Command("go", "list", "-f", `'{{ join .Imports "\n" }}'`)
 	cmd.Dir = fmt.Sprintf("%s/%s", s.Path, s.Entrypoint)
-	var stdOut, stdErr bytes.Buffer
+	var stdOut bytes.Buffer
 	cmd.Stdout = &stdOut
-	cmd.Stderr = &stdErr
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -85,7 +86,6 @@ func (s *Service) Start() error {
 	s.Instance.Dir = fmt.Sprintf("%s/%s", s.Path, s.BuildDir)
 	for k, v := range s.Env {
 		envv := fmt.Sprintf("%s=%s", k, v)
-		// fmt.Println(envv)
 		s.Instance.Env = append(s.Instance.Env, envv)
 	}
 	s.printStdout()
@@ -99,11 +99,13 @@ func (s *Service) Start() error {
 
 func (s *Service) crashHandler() {
 	if err := s.Instance.Wait(); err != nil {
-		if err := s.Start(); err != nil {
-			print.SvcErr(s.Executable, err.Error())
-			return
+		if exiterr, ok := err.(*exec.ExitError); ok && exiterr.ExitCode() == 2 {
+			print.Info("Starting crashed service " + s.Executable)
+			if err := s.Start(); err != nil {
+				print.SvcErr(s.Executable, err.Error())
+				return
+			}
 		}
-		print.Info(s.Executable + " service started")
 	}
 }
 
@@ -138,7 +140,6 @@ func (s *Service) printStdout() error {
 	scanner := bufio.NewScanner(stdOut)
 	go func() {
 		for scanner.Scan() {
-			// fmt.Printf("[%s]: %s\n", s.Output, scanner.Text())
 			print.SvcOut(s.Executable, scanner.Text())
 		}
 	}()
@@ -153,7 +154,6 @@ func (s *Service) printStderr() error {
 	scanner := bufio.NewScanner(stdErr)
 	go func() {
 		for scanner.Scan() {
-			// fmt.Printf("[%s]: %s\n", s.Output, scanner.Text())
 			print.SvcErr(s.Executable, scanner.Text())
 		}
 	}()

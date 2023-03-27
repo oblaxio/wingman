@@ -44,7 +44,6 @@ func (w *SourceWatcher) Start() error {
 					return
 				}
 				if event.Op == fsnotify.Create || event.Op == fsnotify.Write {
-					// log.Println("file changed:", event.Name)
 					for _, s := range w.swarm.List() {
 						if s != nil {
 							if s.CheckDependency(event.Name) {
@@ -70,7 +69,6 @@ func (w *SourceWatcher) Start() error {
 			}
 		}
 	}()
-
 	<-make(chan struct{})
 	return nil
 }
