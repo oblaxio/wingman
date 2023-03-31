@@ -21,7 +21,7 @@ type Config struct {
 	WatchDir       []string                 `yaml:"watch_dir"`
 	DontWatchDir   []string                 `yaml:"dont_watch_dir"`
 	WatchFiles     []string                 `yaml:"watch_files"`
-	DintWatchFiles []string                 `yaml:"dont_watch_files"`
+	DontWatchFiles []string                 `yaml:"dont_watch_files"`
 	Services       map[string]ServiceConfig `yaml:"services"`
 }
 
