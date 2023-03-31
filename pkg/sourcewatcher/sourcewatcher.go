@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/oblaxio/wingman/pkg/config"
@@ -79,12 +80,42 @@ func (w *SourceWatcher) Watcher() *fsnotify.Watcher {
 
 func addWatcher(prefix string, watcher *fsnotify.Watcher, dir string) error {
 	fullDir := fmt.Sprintf("%s/%s", prefix, dir)
+	// check whether this dir needs to be ignorred
+	for _, d := range config.Get().DontWatchDir {
+		if fullDir == d {
+			return nil // skip dir watch
+		}
+	}
 	items, err := os.ReadDir(fullDir)
 	if err != nil {
 		return err
 	}
 	for _, i := range items {
 		path := fmt.Sprintf("%s/%s", fullDir, i.Name())
+		// check whether the file is in the negative watch list
+		if len(config.Get().DontWatchFiles) > 0 {
+			for _, f := range config.Get().DontWatchFiles {
+				match, err := filepath.Match(fullDir+f, path)
+				if err != nil {
+					return err
+				}
+				if match {
+					return nil
+				}
+			}
+		}
+		// check whether the file is in the positive watch list
+		if len(config.Get().WatchFiles) > 0 {
+			for _, f := range config.Get().WatchFiles {
+				match, err := filepath.Match(fullDir+f, path)
+				if err != nil {
+					return err
+				}
+				if !match {
+					return nil
+				}
+			}
+		}
 		err = watcher.Add(path)
 		if err != nil {
 			return err
