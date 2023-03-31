@@ -46,3 +46,12 @@ func (sw *ServiceSwarm) RunServices() error {
 func (sw *ServiceSwarm) List() []*service.Service {
 	return sw.swarm
 }
+
+func (sw *ServiceSwarm) KillAll() error {
+	for _, s := range sw.swarm {
+		if err := s.Stop(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
