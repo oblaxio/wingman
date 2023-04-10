@@ -28,7 +28,7 @@ func NewWatcher(swarm *swarm.ServiceSwarm) (*SourceWatcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range config.Get().WatchDir {
+	for _, v := range config.Get().Watchers.IncludeDirs {
 		if err := addWatcher(".", w.watcher, v); err != nil {
 			return nil, err
 		}
@@ -48,7 +48,7 @@ func (w *SourceWatcher) Start() error {
 					for _, s := range w.swarm.List() {
 						if s != nil {
 							if s.CheckDependency(event.Name) {
-								print.Info("Change detected in " + s.Executable + " dependency. Rebuilding and restarting service...")
+								print.Rebuild("rebuilding " + s.Executable)
 								if err := s.Stop(); err != nil {
 									fmt.Println(err)
 								}
@@ -81,7 +81,7 @@ func (w *SourceWatcher) Watcher() *fsnotify.Watcher {
 func addWatcher(prefix string, watcher *fsnotify.Watcher, dir string) error {
 	fullDir := fmt.Sprintf("%s/%s", prefix, dir)
 	// check whether this dir needs to be ignorred
-	for _, d := range config.Get().DontWatchDir {
+	for _, d := range config.Get().Watchers.ExcludeDirs {
 		if fullDir == d {
 			return nil // skip dir watch
 		}
@@ -93,9 +93,9 @@ func addWatcher(prefix string, watcher *fsnotify.Watcher, dir string) error {
 	for _, i := range items {
 		path := fmt.Sprintf("%s/%s", fullDir, i.Name())
 		// check whether the file is in the negative watch list
-		if len(config.Get().DontWatchFiles) > 0 {
-			for _, f := range config.Get().DontWatchFiles {
-				match, err := filepath.Match(fullDir+f, path)
+		if len(config.Get().Watchers.ExcludeFiles) > 0 && !i.IsDir() {
+			for _, f := range config.Get().Watchers.ExcludeFiles {
+				match, err := filepath.Match(fullDir+"/"+f, path)
 				if err != nil {
 					return err
 				}
@@ -105,9 +105,9 @@ func addWatcher(prefix string, watcher *fsnotify.Watcher, dir string) error {
 			}
 		}
 		// check whether the file is in the positive watch list
-		if len(config.Get().WatchFiles) > 0 {
-			for _, f := range config.Get().WatchFiles {
-				match, err := filepath.Match(fullDir+f, path)
+		if len(config.Get().Watchers.IncludeFiles) > 0 && !i.IsDir() {
+			for _, f := range config.Get().Watchers.IncludeFiles {
+				match, err := filepath.Match(fullDir+"/"+f, path)
 				if err != nil {
 					return err
 				}

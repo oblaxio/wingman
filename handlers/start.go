@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/oblaxio/wingman/pkg/config"
+	"github.com/oblaxio/wingman/pkg/proxy"
 	"github.com/oblaxio/wingman/pkg/sourcewatcher"
 	"github.com/oblaxio/wingman/pkg/swarm"
 	"github.com/spf13/cobra"
@@ -35,6 +36,15 @@ func StartHandler(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	defer sw.Stop()
+	// check whether to start proxy
+	if config.Get().Proxy.Enabled {
+		// start proxy
+		p, err := proxy.NewServer()
+		if err != nil {
+			log.Fatal(err)
+		}
+		go p.Serve()
+	}
 	// start source watcher
 	sw.Start()
 }
