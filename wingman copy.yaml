@@ -1,0 +1,49 @@
+version: 1.0
+module: github.com/oblaxio/wingman
+env: 
+  MASTER_KEY: key123431ee
+build_dir: bin
+watchers:
+  include_dirs: ["local/pkg", "local/services"]
+  exclude_dirs: ["vendor", "modules"]  
+  include_files: ["*.go"]
+  exclude_files: ["test_*.go"]
+proxy:
+  enabled: true
+  port: 8080
+  address: 127.0.0.1
+  api_prefix: api
+  log_requests: true
+  storage:
+    enabled: true
+    prefix: storage
+    bucket: bucketname
+    service: minio
+    address: 127.0.0.1
+    port: 9000
+  spa: 
+    enabled: true
+    address: 127.0.0.1
+    port: 3000
+  static:
+    enabled: true
+    dir: /public
+    index: index.html
+services:
+  svc-one:
+    entrypoint: local/services/svc-one
+    executable: svc-one
+    proxy_handle: /api/v1/svc-one
+    proxy_address: 127.0.0.1
+    proxy_port: 10001
+    env: 
+      PORT: 10001
+  svc-two:
+    entrypoint: local/services/svc-two
+    executable: svc-two
+    proxy_handle: /api/v1/svc-two
+    proxy_address: 127.0.0.1
+    proxy_port: 10002
+    env: 
+      PORT: 10002
+      
