@@ -7,6 +7,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	golang.org/x/mod v0.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
