@@ -1,6 +1,6 @@
 # Wingman
 
-Wingman is a command-line tool written in Go that provides developers with an easy and efficient workflow for developing projects consisted of multiple services. It's been created to help us with the oblax platform development and it's been dogfooded since it's inception.
+Wingman is a command-line tool written in Go that provides developers with an easy and efficient workflow for developing projects consisted of multiple services.
 
 There are couple of features in wingman that differentiate it from other similar tools:
 
@@ -8,7 +8,7 @@ There are couple of features in wingman that differentiate it from other similar
 2. When it detects a file change it will not restart all services, just the ones affected by the code change;
 3. You can inject environment variables to each service separately, or to all of them globally;
 4. It packs a simple reverse-proxy that allows developers to "unify" services under a single port, based on a unique service "proxy handle";
-5. When using a the proxy you can also define static, storage or SPA routes, which help you run frontend apps on the same (proxy) port with your services.
+5. When using the proxy you can also define static, storage or SPA routes, which help you run frontend apps on the same (proxy) port with your services.
 
 ## Installation
 To install Wingman, just use the following command:
@@ -107,3 +107,6 @@ The config file in the example above is suited for a project with the following 
 │       └── main.go
 └── wingman.yaml
 ```
+
+## Things you might find interesting
+Wingman was created to help with the development of the [Oblax](https://oblax.io) platform and we've been dogfooding it since it's inception. 
