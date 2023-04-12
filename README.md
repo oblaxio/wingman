@@ -14,7 +14,7 @@ There are couple of features in wingman that differentiate it from other similar
 To install Wingman, just use the following command:
 
 ```sh
-go get -u github.com/oblax/wingman@latest
+go install github.com/oblax/wingman@latest
 ```
 
 ## Usage
