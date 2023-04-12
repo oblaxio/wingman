@@ -14,14 +14,14 @@ There are couple of features in wingman that differentiate it from other similar
 To install Wingman, just use the following command:
 
 ```sh
-go install github.com/oblax/wingman@latest
+$ go install github.com/oblax/wingman@latest
 ```
 
 ## Usage
 To use Wingman, navigate to your go project directory and run the following command:
 
 ```sh
-wingman init
+$ wingman init
 ```
 This will initialize a Wingman config file called `wingman.yaml` which you can later edit and customize according to your project needs.
 
@@ -107,6 +107,15 @@ The config file in the example above is suited for a project with the following 
 │       └── main.go
 └── wingman.yaml
 ```
+## Running wingman
+After your wingman configuration is all set and done the next step is running it. For this you'll have to execute the following command inside your project directory:
 
-## Things you might find interesting
-Wingman was created to help with the development of the [Oblax](https://oblax.io) platform and we've been dogfooding it since it's inception. 
+```sh
+$ wingman start
+```
+this will start wingman, and you'll be presented with an output like this:
+
+![](https://drive.google.com/uc?id=1NbsYP8LRsCqGPJzSY_DqTQFzm5-ec2tj)
+
+## Things you might find... interesting?
+Wingman was created by [Beyond Basics](https://beyondbasics.co) as a tool to help with the development of the [Oblax](https://oblax.io) platform and we've been dogfooding it since it's inception. 
