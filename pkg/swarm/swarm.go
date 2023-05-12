@@ -29,6 +29,7 @@ func (sw *ServiceSwarm) RunServices() error {
 		}
 		s.StdOut = &stdOut
 		s.StdErr = &stdErr
+		print.Info("gathering " + serviceName + " deepndencies")
 		s.GetDependencies()
 		if err := s.Build(); err != nil {
 			return err

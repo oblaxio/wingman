@@ -15,10 +15,11 @@ import (
 )
 
 type Service struct {
-	Entrypoint   string
-	Executable   string
-	Env          map[string]string
-	Dependencies map[string]string
+	Entrypoint string
+	Executable string
+	Env        map[string]string
+	// Dependencies map[string]string
+	Dependencies map[string]struct{}
 	Module       string
 	Path         string
 	Instance     *exec.Cmd
@@ -33,7 +34,7 @@ func NewService(service string, rootPath string) (*Service, error) {
 		Executable:   config.Get().Services[service].Executable,
 		Env:          config.Get().Services[service].Env,
 		Module:       config.Get().Module,
-		Dependencies: make(map[string]string),
+		Dependencies: make(map[string]struct{}),
 		Path:         rootPath,
 		Instance:     nil,
 		BuildDir:     config.Get().BuildDir,
@@ -44,8 +45,12 @@ func NewService(service string, rootPath string) (*Service, error) {
 }
 
 func (s *Service) GetDependencies() error {
+	return s.listDependencies(s.Path + "/" + s.Entrypoint)
+}
+
+func (s *Service) listDependencies(path string) error {
 	cmd := exec.Command("go", "list", "-f", `'{{ join .Imports "\n" }}'`)
-	cmd.Dir = fmt.Sprintf("%s/%s", s.Path, s.Entrypoint)
+	cmd.Dir = path
 	var stdOut bytes.Buffer
 	cmd.Stdout = &stdOut
 	if err := cmd.Run(); err != nil {
@@ -56,11 +61,15 @@ func (s *Service) GetDependencies() error {
 	for _, p := range packages {
 		p = strings.TrimSpace(p)
 		if strings.HasPrefix(p, s.Module) {
-			s.Dependencies[p] = p
+			s.Dependencies[p] = struct{}{}
+			path = strings.Replace(p, s.Module, ".", 1)
+			if err := s.listDependencies(path); err != nil {
+				return err
+			}
 		}
 	}
 	mainPkg := s.Module + "/" + s.Entrypoint
-	s.Dependencies[mainPkg] = mainPkg
+	s.Dependencies[mainPkg] = struct{}{}
 	return nil
 }
 
