@@ -38,7 +38,7 @@ func NewServer() (*Server, error) {
 func (s *Server) Serve() {
 	print.Info("wingman dev proxy listening on " + strconv.Itoa(s.cfg.Proxy.Port))
 	if err := s.server.ListenAndServe(); err != nil {
-		print.SvcErr("proxy", "Proxy crashed!")
+		print.SvcErr("proxy", "Proxy crashed! "+err.Error())
 	}
 }
 
