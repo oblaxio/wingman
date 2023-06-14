@@ -15,13 +15,14 @@ const DefaultConfigFile = "wingman.yaml"
 var configInstance *Config
 
 type Config struct {
-	Version  float64                  `yaml:"version"`
-	Module   string                   `yaml:"module"`
-	Env      map[string]string        `yaml:"env,omitempty"`
-	BuildDir string                   `yaml:"build_dir"`
-	Watchers Watchers                 `yaml:"watchers"`
-	Services map[string]ServiceConfig `yaml:"services"`
-	Proxy    Proxy                    `yaml:"proxy"`
+	Version       float64                  `yaml:"version"`
+	Module        string                   `yaml:"module"`
+	Env           map[string]string        `yaml:"env,omitempty"`
+	BuildDir      string                   `yaml:"build_dir"`
+	Watchers      Watchers                 `yaml:"watchers"`
+	Services      map[string]ServiceConfig `yaml:"services"`
+	Proxy         Proxy                    `yaml:"proxy"`
+	ServiceGroups map[string][]string      `yaml:"service_groups"`
 }
 
 type Watchers struct {

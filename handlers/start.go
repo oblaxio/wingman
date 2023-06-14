@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/oblaxio/wingman/pkg/config"
@@ -12,19 +11,23 @@ import (
 )
 
 func StartHandler(cmd *cobra.Command, args []string) {
-	fmt.Println("Start handler")
+	// fmt.Println("Start handler")
 	// get the right config file
 	configFile := config.DefaultConfigFile
-	if len(args) == 1 {
-		configFile = args[0]
-	}
+	// if len(args) == 1 {
+	// 	configFile = args[0]
+	// }
 	// read configuration
 	err := config.NewConfigFromFile(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
+	group := ""
+	if len(args) == 1 {
+		group = args[0]
+	}
 	// create service swarm
-	swm := swarm.NewServiceSwarm()
+	swm := swarm.NewServiceSwarm(group)
 	defer swm.KillAll()
 	// start services
 	if err := swm.RunServices(); err != nil {
