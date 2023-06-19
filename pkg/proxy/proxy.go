@@ -106,7 +106,7 @@ func (s *Server) getAPI(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.String()) > 1 {
 		var svc *config.ServiceConfig
 		for _, v := range s.cfg.Services {
-			if strings.HasPrefix(r.URL.String(), v.ProxyHandle) {
+			if v.ProxyHandle != "" && strings.HasPrefix(r.URL.String(), v.ProxyHandle) {
 				svc = &v
 				break
 			}
