@@ -134,6 +134,10 @@ func (s *Server) getStorageItem(w http.ResponseWriter, r *http.Request) {
 
 // proxyRoute ...
 func proxyRoute(address string, port int, w http.ResponseWriter, r *http.Request) {
+	if address == "" || port == 0 {
+		print.SvcErr("proxy", "could not create proxy URL, address or port mising")
+		return
+	}
 	u, err := url.Parse("http://" + address + ":" + strconv.Itoa(port))
 	if err != nil {
 		print.SvcErr("proxy", "could not create proxy URL: "+err.Error())
