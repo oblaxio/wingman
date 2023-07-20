@@ -24,6 +24,7 @@ type Service struct {
 	Path         string
 	Instance     *exec.Cmd
 	BuildDir     string
+	LDFlags      map[string]string
 	StdOut       *bytes.Buffer
 	StdErr       *bytes.Buffer
 	//
@@ -40,6 +41,7 @@ func NewService(service string, rootPath string) (*Service, error) {
 		Path:         rootPath,
 		Instance:     nil,
 		BuildDir:     config.Get().BuildDir,
+		LDFlags:      config.Get().Services[service].LDFlags,
 	}
 	// copy global env to service env to avoid overriding or two assignment for loops
 	maps.Copy(s.Env, config.Get().Env)
@@ -151,7 +153,19 @@ func (s *Service) Build() error {
 		p = append(p, "..")
 	}
 	outputPath := fmt.Sprintf("%s/%s", strings.Join(p, "/"), s.BuildDir)
-	s.Instance = exec.Command("go", "build", "-o", outputPath)
+	comArgs := []string{"build", "-o", outputPath}
+	if len(s.LDFlags) > 0 {
+		flags := []string{}
+		for k, v := range s.LDFlags {
+			flags = append(flags, fmt.Sprintf("-X '%s=%s'", k, v))
+		}
+		comArgs = append(
+			comArgs,
+			`-ldflags= `+strings.Join(flags, " "),
+		)
+	}
+
+	s.Instance = exec.Command("go", comArgs...)
 	s.Instance.Dir = fmt.Sprintf("%s/%s", s.Path, s.Entrypoint)
 	s.Instance.Stdout = s.StdOut
 	s.Instance.Stderr = s.StdErr

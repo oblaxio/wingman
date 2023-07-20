@@ -71,6 +71,7 @@ type ServiceConfig struct {
 	ProxyHandle  string            `yaml:"proxy_handle"`
 	ProxyAddress string            `yaml:"proxy_address"`
 	ProxyPort    int               `yaml:"proxy_port"`
+	LDFlags      map[string]string `yaml:"ldflags"`
 }
 
 func NewConfig() *Config {
