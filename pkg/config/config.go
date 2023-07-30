@@ -15,13 +15,14 @@ const DefaultConfigFile = "wingman.yaml"
 var configInstance *Config
 
 type Config struct {
-	Version  float64                  `yaml:"version"`
-	Module   string                   `yaml:"module"`
-	Env      map[string]string        `yaml:"env,omitempty"`
-	BuildDir string                   `yaml:"build_dir"`
-	Watchers Watchers                 `yaml:"watchers"`
-	Services map[string]ServiceConfig `yaml:"services"`
-	Proxy    Proxy                    `yaml:"proxy"`
+	Version       float64                  `yaml:"version"`
+	Module        string                   `yaml:"module"`
+	Env           map[string]string        `yaml:"env,omitempty"`
+	BuildDir      string                   `yaml:"build_dir"`
+	Watchers      Watchers                 `yaml:"watchers"`
+	Services      map[string]ServiceConfig `yaml:"services"`
+	Proxy         Proxy                    `yaml:"proxy"`
+	ServiceGroups map[string][]string      `yaml:"service_groups"`
 }
 
 type Watchers struct {
@@ -70,6 +71,7 @@ type ServiceConfig struct {
 	ProxyHandle  string            `yaml:"proxy_handle"`
 	ProxyAddress string            `yaml:"proxy_address"`
 	ProxyPort    int               `yaml:"proxy_port"`
+	LDFlags      map[string]string `yaml:"ldflags"`
 }
 
 func NewConfig() *Config {

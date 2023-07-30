@@ -2,11 +2,14 @@ package print
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
 )
+
+const labelLength = 20
 
 var (
 	cyan    = color.New(color.FgHiCyan).SprintFunc()
@@ -47,10 +50,20 @@ func SvcProxy(msg string) {
 
 func printer(icon string, service string, colorfn func(a ...interface{}) string, msg string) {
 	fmt.Printf(
-		"%s %-18s %s   %s\n",
+		"%s %s %-"+strconv.Itoa(labelLength)+"s %s %s\n",
 		icon,
-		colorfn(strings.ToUpper(service)),
-		gray(time.Now().Format(time.DateTime)),
+		colorfn(time.Now().Format(time.TimeOnly)),
+		colorfn(strings.ToLower(adjustLabel(service, labelLength))),
+		colorfn("|"),
 		msg,
 	)
+}
+
+func adjustLabel(label string, max int) string {
+	if len(label) > max {
+		return label[:max]
+	} else if len(label) < max {
+		return label + strings.Repeat(" ", max-len(label))
+	}
+	return label
 }

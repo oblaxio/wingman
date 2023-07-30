@@ -24,8 +24,11 @@ type Service struct {
 	Path         string
 	Instance     *exec.Cmd
 	BuildDir     string
+	LDFlags      map[string]string
 	StdOut       *bytes.Buffer
 	StdErr       *bytes.Buffer
+	//
+	// sync.Mutex
 }
 
 func NewService(service string, rootPath string) (*Service, error) {
@@ -38,6 +41,7 @@ func NewService(service string, rootPath string) (*Service, error) {
 		Path:         rootPath,
 		Instance:     nil,
 		BuildDir:     config.Get().BuildDir,
+		LDFlags:      config.Get().Services[service].LDFlags,
 	}
 	// copy global env to service env to avoid overriding or two assignment for loops
 	maps.Copy(s.Env, config.Get().Env)
@@ -45,6 +49,8 @@ func NewService(service string, rootPath string) (*Service, error) {
 }
 
 func (s *Service) GetDependencies() error {
+	// func (s *Service) GetDependencies() {
+	// 	go s.listDependencies(s.Path + "/" + s.Entrypoint)
 	return s.listDependencies(s.Path + "/" + s.Entrypoint)
 }
 
@@ -61,15 +67,25 @@ func (s *Service) listDependencies(path string) error {
 	for _, p := range packages {
 		p = strings.TrimSpace(p)
 		if strings.HasPrefix(p, s.Module) {
+			// s.Mutex.Lock()
 			s.Dependencies[p] = struct{}{}
+			// s.Mutex.Unlock()
 			path = strings.Replace(p, s.Module, ".", 1)
 			if err := s.listDependencies(path); err != nil {
 				return err
 			}
+			// go func() {
+			// 	if err := s.listDependencies(path); err != nil {
+			// 		// return err
+			// 		panic(err)
+			// 	}
+			// }()
 		}
 	}
 	mainPkg := s.Module + "/" + s.Entrypoint
+	// s.Mutex.Lock()
 	s.Dependencies[mainPkg] = struct{}{}
+	// s.Mutex.Unlock()
 	return nil
 }
 
@@ -90,15 +106,16 @@ func (s *Service) CheckDependency(pkg string) bool {
 }
 
 func (s *Service) Start() error {
-	cmd := fmt.Sprintf("./%s", s.Executable)
+	cmd := "./" + s.Executable
 	s.Instance = exec.Command(cmd)
-	s.Instance.Dir = fmt.Sprintf("%s/%s", s.Path, s.BuildDir)
+	s.Instance.Dir = s.Path + "/" + s.BuildDir
 	for k, v := range s.Env {
-		envv := fmt.Sprintf("%s=%s", k, v)
+		envv := k + "=" + v
 		s.Instance.Env = append(s.Instance.Env, envv)
 	}
 	s.printStdout()
 	s.printStderr()
+	// fmt.Println("Starting service " + s.Executable)
 	if err := s.Instance.Start(); err != nil {
 		return err
 	}
@@ -108,12 +125,17 @@ func (s *Service) Start() error {
 
 func (s *Service) crashHandler() {
 	if err := s.Instance.Wait(); err != nil {
-		if exiterr, ok := err.(*exec.ExitError); ok && exiterr.ExitCode() == 2 {
-			print.Info("Starting crashed service " + s.Executable)
-			if err := s.Start(); err != nil {
-				print.SvcErr(s.Executable, err.Error())
-				return
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			if exiterr.ExitCode() == 2 {
+				print.Info("Starting crashed service " + s.Executable)
+				if err := s.Start(); err != nil {
+					print.SvcErr(s.Executable, err.Error())
+					return
+				}
 			}
+			// } else {
+			// 	print.SvcErr(s.Executable, err.Error())
+			// }
 		}
 	}
 }
@@ -131,7 +153,19 @@ func (s *Service) Build() error {
 		p = append(p, "..")
 	}
 	outputPath := fmt.Sprintf("%s/%s", strings.Join(p, "/"), s.BuildDir)
-	s.Instance = exec.Command("go", "build", "-o", outputPath)
+	comArgs := []string{"build", "-o", outputPath}
+	if len(s.LDFlags) > 0 {
+		flags := []string{}
+		for k, v := range s.LDFlags {
+			flags = append(flags, fmt.Sprintf("-X '%s=%s'", k, v))
+		}
+		comArgs = append(
+			comArgs,
+			`-ldflags= `+strings.Join(flags, " "),
+		)
+	}
+
+	s.Instance = exec.Command("go", comArgs...)
 	s.Instance.Dir = fmt.Sprintf("%s/%s", s.Path, s.Entrypoint)
 	s.Instance.Stdout = s.StdOut
 	s.Instance.Stderr = s.StdErr
