@@ -41,6 +41,8 @@ type Proxy struct {
 	Storage     ProxyStorage `yaml:"storage,omitempty"`
 	SPA         ProxySPA     `yaml:"spa,omitempty"`
 	Static      ProxyStatic  `yaml:"static,omitempty"`
+
+	// PublicAssets ProxyPublicAssets `yaml:"public_assets,omitempty"`
 }
 
 type ProxyStorage struct {
@@ -64,14 +66,24 @@ type ProxyStatic struct {
 	Index   string `yaml:"index"`
 }
 
+// type ProxyPublicAssets struct {
+// 	Enabled            bool   `yaml:"enabled"`
+// 	Path               string `yaml:"path"`
+// 	Dir                string `yaml:"dir"`
+// 	ServiceNamePattern string `yaml:"service_name_pattern"`
+// }
+
 type ServiceConfig struct {
-	Entrypoint   string            `yaml:"entrypoint"`
-	Executable   string            `yaml:"executable"`
-	Env          map[string]string `yaml:"env"`
-	ProxyHandle  string            `yaml:"proxy_handle"`
-	ProxyAddress string            `yaml:"proxy_address"`
-	ProxyPort    int               `yaml:"proxy_port"`
-	LDFlags      map[string]string `yaml:"ldflags"`
+	Entrypoint     string            `yaml:"entrypoint"`
+	Executable     string            `yaml:"executable"`
+	Env            map[string]string `yaml:"env"`
+	ProxyType      string            `yaml:"proxy_type"`
+	ProxyHandle    string            `yaml:"proxy_handle"`
+	ProxyStaticDir string            `yaml:"proxy_static_dir"`
+	ProxyIndex     string            `yaml:"proxy_index"`
+	ProxyPort      int               `yaml:"proxy_port"`
+	ProxyAddress   string            `yaml:"proxy_address"`
+	LDFlags        map[string]string `yaml:"ldflags"`
 }
 
 func NewConfig() *Config {
