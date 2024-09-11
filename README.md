@@ -14,7 +14,7 @@ There are couple of features in wingman that differentiate it from other similar
 To install Wingman, just use the following command:
 
 ```sh
-$ go install github.com/oblax/wingman@latest
+$ go install github.com/oblaxio/wingman@latest
 ```
 
 ## Usage
@@ -31,54 +31,51 @@ This will initialize a Wingman config file called `wingman.yaml` which you can l
 This is how a wingman config file looks like:
 
 ```yaml
-version: 1.0 
-module: github.com/oblaxio/wingman # the module path as in your project's go.mod file
-env: 
-  MASTER_KEY: key123431ee
-build_dir: bin # the directory where the built services reside
+version: 1 # The config version number. For now it's 1
+module: oblax.io # The name of the go module
+build_dir: bin # The build directory for the services
 watchers:
-  include_dirs: ["pkg", "services"]
-  exclude_dirs: ["vendor", "modules"]  
-  include_files: ["*.go"]
-  exclude_files: ["test_*.go"]
-proxy:
-  enabled: true
-  port: 8080
-  address: 127.0.0.1
-  api_prefix: api # needed to differentiate wheter it's an api request or a request for the static/frontend assets
-  log_requests: true # whether to log the api requests in the terminal
-  storage: # usually used to give access to a file-storage service (s3, minio, etc.)
-    enabled: true
-    prefix: storage # an endpoint prefix to distinct the sorage route from the api, static or SPA routes
-    bucket: bucketname # name of the storage bucket
-    service: minio
-    address: 127.0.0.1
-    port: 9000
-  spa: # either SPA or static can be enabled because they both rely on the same routing parameters
-    enabled: true
-    address: 127.0.0.1
-    port: 3000
-  static:
-    enabled: true
-    dir: /public
-    index: index.html
-services:
-  svc-one:
-    entrypoint: services/svc-one # the path where the services main file is located
-    executable: svc-one # name of the executable generated (usually the name of it's directory)
-    proxy_handle: /api/v1/svc-one # the handle used by the proxy to identify to which service the request goes
-    proxy_address: 127.0.0.1 # service address used by the proxy to redirect the request to
-    proxy_port: 10001 # service port used by the proxy to redirect the request to
-    env: 
+  include_dirs: ["pkg", "services"] # Directories to be watched
+  exclude_dirs: ["vendor", "modules"] # Directories to be excluded from watching
+  include_files: ["*.go"] # Types of tiles to be watched
+  exclude_files: ["test_*.go"] # Types of files not to be watched
+
+env: # Environment variables available to all services at start
+  GODEBUG: 'x509sha1=1' 
+  OBLAX_REST_ERROR_MODE: 'development'
+
+service_groups: 
+  testing: ["obx-test-service-one", "obx-test-service-two"] # A service list
+
+services: 
+  obx-test-service-one: # An example of a GRPC/Protobuf service
+    entrypoint: services/obx-test-service-one # Service location directory
+    executable: obx-test-service-one # Name of the built service
+    ldflags: # Build flags
+      oblax.io/services/obx-test-service-one.Version: 'v0.1'
+      oblax.io/services/obx-test-service-one.Build: 'dev-build'
+      oblax.io/services/obx-test-service-one.Name: 'obx-test-service-one'
+    env: # Service specific environment variables
       PORT: 10001
-  svc-two:
-    entrypoint: services/svc-two
-    executable: svc-two
-    proxy_handle: /api/v1/svc-two
-    proxy_address: 127.0.0.1
-    proxy_port: 10002
-    env: 
+
+  obx-test-service-two: # An example of a REST service with reverse proxy
+    entrypoint: services/obx-test-service-two
+    executable: obx-test-service-two
+    proxy_type: service 
+    proxy_handle: /api/v1/test-service-two # When someone asks for this route
+    proxy_address: 127.0.0.1 # ...proxy to this address
+    proxy_port: 10002 # ...and this port
+    ldflags:
+      oblax.io/services/obx-test-service-two.Version: 'v0.1'
+      oblax.io/services/obx-test-service-two.Build: 'dev-build'
+      oblax.io/services/obx-test-service-two.Name: 'obx-test-service-two'
+    env:
       PORT: 10002
+
+  obx-test-web-storage: # An example of a static file handler
+    proxy_type: static
+    proxy_handle: /public/platform # Whenever someone asks for this route ...
+    proxy_static_dir: services/obx-test-service-two/public # ...static files
 ```
 
 The config file in the example above is suited for a project with the following structure:
@@ -97,13 +94,17 @@ The config file in the example above is suited for a project with the following 
 │       └── shared.go
 ├── public
 ├── services
-│   ├── svc-one
+│   ├── obx-test-service-one
 │   │   ├── handlers
 │   │   │   └── handler.go
 │   │   └── main.go
-│   └── svc-two
+│   └── obx-test-service-two
 │       ├── handlers
 │       │   └── handler.go
+│       ├── public
+│       │   ├── image.jpg
+│       │   ├── script.js
+│       │   └── style.css
 │       └── main.go
 └── wingman.yaml
 ```
@@ -113,9 +114,10 @@ After your wingman configuration is all set and done the next step is running it
 ```sh
 $ wingman start
 ```
-this will start wingman, and you'll be presented with an output like this:
-
-![](https://drive.google.com/uc?id=1NbsYP8LRsCqGPJzSY_DqTQFzm5-ec2tj)
+or if you want to run a group
+```sh
+$ wingman start testing
+```
 
 ## Things you might find... interesting?
 Wingman was created by [Beyond Basics](https://beyondbasics.co) as a tool to help with the development of the [Oblax](https://oblax.io) platform and we've been dogfooding it since it's inception. 
