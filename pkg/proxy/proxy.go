@@ -175,7 +175,6 @@ func (s *Server) getFile(w http.ResponseWriter, url *url.URL, service config.Ser
 
 func (s *Server) getService(w http.ResponseWriter, r *http.Request, service config.ServiceConfig) {
 	if len(r.URL.String()) > 1 {
-		r.URL.Path = r.URL.String()
 		r.Header.Set("Origin", "http://"+r.Host)
 		proxyRoute(service.ProxyAddress, service.ProxyPort, w, r)
 	}
