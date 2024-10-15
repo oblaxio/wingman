@@ -75,7 +75,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			case "spa":
 				proxyRoute(svc.ProxyAddress, svc.ProxyPort, w, r)
 			case "storage":
-				s.getStorageItem(w, r, svc)
+				s.getStorageItem(w, r)
 			case "static":
 				s.getFile(w, r.URL, svc)
 			default:
@@ -191,7 +191,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request, service conf
 // 	proxyRoute(s.cfg.Proxy.Storage.Address, s.cfg.Proxy.Storage.Port, w, r)
 // }
 
-func (s *Server) getStorageItem(w http.ResponseWriter, r *http.Request, service config.ServiceConfig) {
+func (s *Server) getStorageItem(w http.ResponseWriter, r *http.Request) {
 	r.URL.Path = strings.Replace(
 		r.URL.Path,
 		"/"+s.cfg.Proxy.Storage.Prefix+"/",
