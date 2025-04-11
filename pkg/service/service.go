@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"sync"
 
 	"os/exec"
 	"path/filepath"
@@ -28,7 +29,7 @@ type Service struct {
 	StdOut       *bytes.Buffer
 	StdErr       *bytes.Buffer
 	//
-	// sync.Mutex
+	sync.Mutex
 }
 
 func NewService(service string, rootPath string) (*Service, error) {
@@ -49,9 +50,10 @@ func NewService(service string, rootPath string) (*Service, error) {
 }
 
 func (s *Service) GetDependencies() error {
-	// func (s *Service) GetDependencies() {
-	// 	go s.listDependencies(s.Path + "/" + s.Entrypoint)
-	return s.listDependencies(s.Path + "/" + s.Entrypoint)
+	if err := s.listDependencies(s.Path + "/" + s.Entrypoint); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Service) listDependencies(path string) error {
@@ -67,25 +69,19 @@ func (s *Service) listDependencies(path string) error {
 	for _, p := range packages {
 		p = strings.TrimSpace(p)
 		if strings.HasPrefix(p, s.Module) {
-			// s.Mutex.Lock()
+			// if it exists just continue and dont get nested deps because you already have them
+			if _, ok := s.Dependencies[p]; ok {
+				continue
+			}
 			s.Dependencies[p] = struct{}{}
-			// s.Mutex.Unlock()
 			path = strings.Replace(p, s.Module, ".", 1)
 			if err := s.listDependencies(path); err != nil {
 				return err
 			}
-			// go func() {
-			// 	if err := s.listDependencies(path); err != nil {
-			// 		// return err
-			// 		panic(err)
-			// 	}
-			// }()
 		}
 	}
 	mainPkg := s.Module + "/" + s.Entrypoint
-	// s.Mutex.Lock()
 	s.Dependencies[mainPkg] = struct{}{}
-	// s.Mutex.Unlock()
 	return nil
 }
 
@@ -115,7 +111,6 @@ func (s *Service) Start() error {
 	}
 	s.printStdout()
 	s.printStderr()
-	// fmt.Println("Starting service " + s.Executable)
 	if err := s.Instance.Start(); err != nil {
 		return err
 	}
@@ -133,9 +128,6 @@ func (s *Service) crashHandler() {
 					return
 				}
 			}
-			// } else {
-			// 	print.SvcErr(s.Executable, err.Error())
-			// }
 		}
 	}
 }

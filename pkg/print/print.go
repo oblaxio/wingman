@@ -28,6 +28,12 @@ func Info(msg string) {
 	printer("👻", "info", magenta, msg)
 }
 
+func Debug(msg string) {
+	now := time.Now() // current local time
+	sec := now.Unix()
+	printer("🙃", "DEBUG", yellow, "["+strconv.Itoa(int(sec))+"] "+msg)
+}
+
 func Rebuild(msg string) {
 	printer("🔄", "rebuild", cyan, msg)
 }
@@ -48,13 +54,13 @@ func SvcProxy(msg string) {
 	printer("🚀", "proxy", white, msg)
 }
 
-func printer(icon string, service string, colorfn func(a ...interface{}) string, msg string) {
+func printer(icon string, service string, colorfn func(a ...any) string, msg string) {
 	fmt.Printf(
 		"%s %s %-"+strconv.Itoa(labelLength)+"s %s %s\n",
 		icon,
 		colorfn(time.Now().Format(time.TimeOnly)),
 		colorfn(strings.ToLower(adjustLabel(service, labelLength))),
-		colorfn("|"),
+		colorfn("│"),
 		msg,
 	)
 }

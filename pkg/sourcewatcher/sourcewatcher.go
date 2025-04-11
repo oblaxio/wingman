@@ -9,6 +9,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/oblaxio/wingman/pkg/config"
 	"github.com/oblaxio/wingman/pkg/print"
+	"github.com/oblaxio/wingman/pkg/service"
 	"github.com/oblaxio/wingman/pkg/swarm"
 )
 
@@ -45,21 +46,26 @@ func (w *SourceWatcher) Start() error {
 					return
 				}
 				if event.Op == fsnotify.Create || event.Op == fsnotify.Write {
+					print.Rebuild("file change: " + event.Name)
 					for _, s := range w.swarm.List() {
-						if s != nil {
-							if s.CheckDependency(event.Name) {
-								print.Rebuild("rebuilding " + s.Executable)
-								if err := s.Stop(); err != nil {
-									fmt.Println(err)
-								}
-								if err := s.Build(); err != nil {
-									fmt.Println(err)
-								}
-								if err := s.Start(); err != nil {
-									fmt.Println(err)
+						go func(svc *service.Service) {
+							svc.Lock()
+							if svc != nil {
+								if svc.CheckDependency(event.Name) {
+									if err := svc.Stop(); err != nil {
+										fmt.Println(err)
+									}
+									if err := svc.Build(); err != nil {
+										fmt.Println(err)
+									}
+									if err := svc.Start(); err != nil {
+										fmt.Println(err)
+									}
+									print.Rebuild("rebuilt " + svc.Executable)
 								}
 							}
-						}
+							svc.Unlock()
+						}(s)
 					}
 				}
 			case err, ok := <-w.watcher.Errors:
@@ -100,7 +106,7 @@ func addWatcher(prefix string, watcher *fsnotify.Watcher, dir string) error {
 					return err
 				}
 				if match {
-					return nil
+					continue
 				}
 			}
 		}
@@ -112,7 +118,7 @@ func addWatcher(prefix string, watcher *fsnotify.Watcher, dir string) error {
 					return err
 				}
 				if !match {
-					return nil
+					continue
 				}
 			}
 		}

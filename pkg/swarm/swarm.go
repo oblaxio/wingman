@@ -28,28 +28,29 @@ func (sw *ServiceSwarm) Append(svc *service.Service) {
 func (sw *ServiceSwarm) RunServices() error {
 	var stdOut, stdErr bytes.Buffer
 	for serviceName := range config.Get().Services {
-		if sw.group != "" && !contains(config.Get().ServiceGroups[sw.group], serviceName) {
-			continue
-		}
-		s, err := service.NewService(serviceName, ".")
-		if err != nil {
-			return err
-		}
-		s.StdOut = &stdOut
-		s.StdErr = &stdErr
-		print.Info("calculating " + serviceName + " deepndencies")
-		s.GetDependencies()
-		if err := s.Build(); err != nil {
-			print.SvcErr(s.Executable, "\n"+s.StdErr.String())
-			return err
-		}
-		if err := s.Start(); err != nil {
-			return err
-		}
-		print.Info(s.Executable + " service started")
-		sw.Append(s)
+		go func(serviceName string) {
+			if sw.group != "" && !contains(config.Get().ServiceGroups[sw.group], serviceName) {
+				return
+			}
+			s, err := service.NewService(serviceName, ".")
+			if err != nil {
+				panic(err)
+			}
+			s.StdOut = &stdOut
+			s.StdErr = &stdErr
+			print.Info("calculating " + serviceName + " deepndencies")
+			go s.GetDependencies()
+			if err := s.Build(); err != nil {
+				print.SvcErr(s.Executable, "\n"+s.StdErr.String())
+				panic(err)
+			}
+			if err := s.Start(); err != nil {
+				panic(err)
+			}
+			print.Info(s.Executable + " service started")
+			sw.Append(s)
+		}(serviceName)
 	}
-
 	return nil
 }
 
