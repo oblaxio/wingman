@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 
 	"os/exec"
@@ -11,15 +12,17 @@ import (
 	"strings"
 
 	"github.com/oblaxio/wingman/pkg/config"
+	"github.com/oblaxio/wingman/pkg/env"
 	"github.com/oblaxio/wingman/pkg/print"
 	"golang.org/x/exp/maps"
+	"golang.org/x/tools/go/packages"
 )
 
 type Service struct {
-	Entrypoint string
-	Executable string
-	Env        map[string]string
-	// Dependencies map[string]string
+	Entrypoint   string
+	Executable   string
+	Env          map[string]string
+	EnvFiles     []string
 	Dependencies map[string]struct{}
 	Module       string
 	Path         string
@@ -37,6 +40,7 @@ func NewService(service string, rootPath string) (*Service, error) {
 		Entrypoint:   config.Get().Services[service].Entrypoint,
 		Executable:   config.Get().Services[service].Executable,
 		Env:          config.Get().Services[service].Env,
+		EnvFiles:     config.Get().Services[service].EnvFiles,
 		Module:       config.Get().Module,
 		Dependencies: make(map[string]struct{}),
 		Path:         rootPath,
@@ -44,44 +48,118 @@ func NewService(service string, rootPath string) (*Service, error) {
 		BuildDir:     config.Get().BuildDir,
 		LDFlags:      config.Get().Services[service].LDFlags,
 	}
+	// copy env from env files
+	s.setEnvironmentVariables()
 	// copy global env to service env to avoid overriding or two assignment for loops
 	maps.Copy(s.Env, config.Get().Env)
 	return s, nil
 }
 
+func (s *Service) setEnvironmentVariables() {
+	envFiles := []string{}
+	if len(config.Get().EnvFiles) > 0 {
+		envFiles = append(envFiles, config.Get().EnvFiles...)
+	}
+	if len(s.EnvFiles) > 0 {
+		envFiles = append(envFiles, s.EnvFiles...)
+	}
+	if len(envFiles) > 0 {
+		for _, ef := range envFiles {
+			envVars, err := env.FromFile(ef)
+			if err != nil {
+				print.SvcErr(s.Executable, err.Error())
+				continue
+			}
+			maps.Copy(s.Env, envVars)
+		}
+	}
+	// copy global env to service env to avoid overriding or two assignment for loops
+	maps.Copy(s.Env, config.Get().Env)
+}
+
 func (s *Service) GetDependencies() error {
-	if err := s.listDependencies(s.Path + "/" + s.Entrypoint); err != nil {
+	if err := s.newListDependency(s.Path + "/" + s.Entrypoint); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Service) listDependencies(path string) error {
-	cmd := exec.Command("go", "list", "-f", `'{{ join .Imports "\n" }}'`)
-	cmd.Dir = path
-	var stdOut bytes.Buffer
-	cmd.Stdout = &stdOut
-	if err := cmd.Run(); err != nil {
-		return err
+// func (s *Service) listDependencies(path string) error {
+// 	cmd := exec.Command("go", "list", "-f", `'{{ join .Imports "\n" }}'`)
+// 	cmd.Dir = path
+// 	var stdOut bytes.Buffer
+// 	cmd.Stdout = &stdOut
+// 	if err := cmd.Run(); err != nil {
+// 		return err
+// 	}
+// 	// cmd output comes with single quotes, the slicing below is to remove them
+// 	packages := strings.Split(stdOut.String()[1:len(stdOut.String())-2], "\n")
+// 	for _, p := range packages {
+// 		p = strings.TrimSpace(p)
+// 		if strings.HasPrefix(p, s.Module) {
+// 			// if it exists just continue and dont get nested deps because you already have them
+// 			if _, ok := s.Dependencies[p]; ok {
+// 				continue
+// 			}
+// 			s.Dependencies[p] = struct{}{}
+// 			path = strings.Replace(p, s.Module, ".", 1)
+// 			if err := s.listDependencies(path); err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
+// 	mainPkg := s.Module + "/" + s.Entrypoint
+// 	s.Dependencies[mainPkg] = struct{}{}
+// 	// ************************************************* //
+// 	// if err := s.newListDependency(path); err != nil {
+// 	// 	fmt.Println(err)
+// 	// }
+// 	// ************************************************* //
+// 	return nil
+// }
+
+func (s *Service) newListDependency(path string) error {
+	cfg := &packages.Config{
+		Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps,
+		Dir:  ".", // current module
 	}
-	// cmd output comes with single quotes, the slicing below is to remove them
-	packages := strings.Split(stdOut.String()[1:len(stdOut.String())-2], "\n")
-	for _, p := range packages {
-		p = strings.TrimSpace(p)
-		if strings.HasPrefix(p, s.Module) {
-			// if it exists just continue and dont get nested deps because you already have them
-			if _, ok := s.Dependencies[p]; ok {
+
+	searchPath := "./" + path + "/"
+
+	packageList, err := packages.Load(cfg, searchPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Recursive function to collect imports
+	var collectDeps func(pkg *packages.Package)
+
+	collectDeps = func(pkg *packages.Package) {
+		for p, imp := range pkg.Imports {
+			if _, exists := s.Dependencies[p]; exists {
 				continue
-			}
-			s.Dependencies[p] = struct{}{}
-			path = strings.Replace(p, s.Module, ".", 1)
-			if err := s.listDependencies(path); err != nil {
-				return err
+			} else {
+				if strings.HasPrefix(p, s.Module) {
+					s.Dependencies[p] = struct{}{}
+					collectDeps(imp) // recurse into imported package
+				}
 			}
 		}
 	}
-	mainPkg := s.Module + "/" + s.Entrypoint
-	s.Dependencies[mainPkg] = struct{}{}
+
+	// Start collecting from your top-level packages
+	for _, pkg := range packageList {
+		for p, imp := range pkg.Imports {
+			if _, exists := s.Dependencies[p]; exists {
+				continue
+			} else {
+				if strings.HasPrefix(p, s.Module) {
+					s.Dependencies[p] = struct{}{}
+					collectDeps(imp) // recurse into imported package
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -105,6 +183,7 @@ func (s *Service) Start() error {
 	cmd := "./" + s.Executable
 	s.Instance = exec.Command(cmd)
 	s.Instance.Dir = s.Path + "/" + s.BuildDir
+	// loading environment variables
 	for k, v := range s.Env {
 		envv := k + "=" + v
 		s.Instance.Env = append(s.Instance.Env, envv)

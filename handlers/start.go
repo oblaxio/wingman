@@ -11,7 +11,6 @@ import (
 )
 
 func StartHandler(cmd *cobra.Command, args []string) {
-	// fmt.Println("Start handler")
 	// get the right config file
 	configFile := config.DefaultConfigFile
 	// if len(args) == 1 {

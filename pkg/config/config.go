@@ -18,6 +18,7 @@ type Config struct {
 	Version       float64                  `yaml:"version"`
 	Module        string                   `yaml:"module"`
 	Env           map[string]string        `yaml:"env,omitempty"`
+	EnvFiles      []string                 `yaml:"env_files,omitempty"`
 	BuildDir      string                   `yaml:"build_dir"`
 	Watchers      Watchers                 `yaml:"watchers"`
 	Services      map[string]ServiceConfig `yaml:"services"`
@@ -77,6 +78,7 @@ type ServiceConfig struct {
 	Entrypoint     string            `yaml:"entrypoint"`
 	Executable     string            `yaml:"executable"`
 	Env            map[string]string `yaml:"env"`
+	EnvFiles       []string          `yaml:"env_files"`
 	ProxyType      string            `yaml:"proxy_type"`
 	ProxyHandle    string            `yaml:"proxy_handle"`
 	ProxyStaticDir string            `yaml:"proxy_static_dir"`
@@ -84,6 +86,7 @@ type ServiceConfig struct {
 	ProxyPort      int               `yaml:"proxy_port"`
 	ProxyAddress   string            `yaml:"proxy_address"`
 	LDFlags        map[string]string `yaml:"ldflags"`
+	DependsOn      []string          `yaml:"depends_on"`
 }
 
 func NewConfig() *Config {
