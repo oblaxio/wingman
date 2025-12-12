@@ -15,80 +15,80 @@ const DefaultConfigFile = "wingman.yaml"
 var configInstance *Config
 
 type Config struct {
-	Version       float64                  `yaml:"version"`
-	Module        string                   `yaml:"module"`
-	Env           map[string]string        `yaml:"env,omitempty"`
-	EnvFiles      []string                 `yaml:"env_files,omitempty"`
-	BuildDir      string                   `yaml:"build_dir"`
-	Watchers      Watchers                 `yaml:"watchers"`
-	Services      map[string]ServiceConfig `yaml:"services"`
-	Proxy         Proxy                    `yaml:"proxy"`
-	ServiceGroups map[string][]string      `yaml:"service_groups"`
+	// Configuration file version
+	Version float64 `yaml:"version"`
+	// Go module name
+	Module string `yaml:"module"`
+	// A key-value list of environment variables
+	Env map[string]string `yaml:"env,omitempty"`
+	// List of environment variable (.env) files
+	EnvFiles []string `yaml:"env_files,omitempty"`
+	// The build output directory
+	BuildDir string `yaml:"build_dir"`
+	// File and directory watchers
+	Watchers Watchers `yaml:"watchers"`
+	// Service configurations
+	Services map[string]ServiceConfig `yaml:"services"`
+	// Proxy server configuration
+	Proxy Proxy `yaml:"proxy"`
+	// Service groups
+	ServiceGroups map[string][]string `yaml:"service_groups"`
 }
 
 type Watchers struct {
-	IncludeDirs  []string `yaml:"include_dirs"`
-	ExcludeDirs  []string `yaml:"exclude_dirs"`
+	// Directories to include/exclude from watching
+	IncludeDirs []string `yaml:"include_dirs"`
+	// Directories to exclude from watching
+	ExcludeDirs []string `yaml:"exclude_dirs"`
+	// Files to include/exclude from watching
 	IncludeFiles []string `yaml:"include_files"`
+	// Files to exclude from watching
 	ExcludeFiles []string `yaml:"exclude_files"`
 }
 
 type Proxy struct {
-	Enabled     bool         `yaml:"enabled"`
-	Port        int          `yaml:"port"`
-	Address     string       `yaml:"address"`
-	APIPrefix   string       `yaml:"api_prefix"`
-	LogRequests bool         `yaml:"log_requests"`
-	Storage     ProxyStorage `yaml:"storage,omitempty"`
-	SPA         ProxySPA     `yaml:"spa,omitempty"`
-	Static      ProxyStatic  `yaml:"static,omitempty"`
-
-	// PublicAssets ProxyPublicAssets `yaml:"public_assets,omitempty"`
-}
-
-type ProxyStorage struct {
-	Enabled bool   `yaml:"enabled"`
-	Prefix  string `yaml:"prefix"`
-	Bucket  string `yaml:"bucket"`
-	Service string `yaml:"service"`
+	// Tells whether to start the proxy server
+	Enabled bool `yaml:"enabled"`
+	// The port on which the proxy server will listen
+	Port int `yaml:"port"`
+	// The address on which the proxy server will listen
 	Address string `yaml:"address"`
-	Port    int    `yaml:"port"`
+	// The API prefix to use for routing
+	APIPrefix string `yaml:"api_prefix"`
+	// Whether to log incoming requests to the terminal
+	LogRequests bool `yaml:"log_requests"`
 }
-
-type ProxySPA struct {
-	Enabled bool   `yaml:"enabled"`
-	Address string `yaml:"address"`
-	Port    int    `yaml:"port"`
-}
-
-type ProxyStatic struct {
-	Enabled bool   `yaml:"enabled"`
-	Dir     string `yaml:"dir"`
-	Index   string `yaml:"index"`
-}
-
-// type ProxyPublicAssets struct {
-// 	Enabled            bool   `yaml:"enabled"`
-// 	Path               string `yaml:"path"`
-// 	Dir                string `yaml:"dir"`
-// 	ServiceNamePattern string `yaml:"service_name_pattern"`
-// }
 
 type ServiceConfig struct {
-	Entrypoint     string            `yaml:"entrypoint"`
-	Executable     string            `yaml:"executable"`
-	Env            map[string]string `yaml:"env"`
-	EnvFiles       []string          `yaml:"env_files"`
-	ProxyType      string            `yaml:"proxy_type"`
-	ProxyHandle    string            `yaml:"proxy_handle"`
-	ProxyStaticDir string            `yaml:"proxy_static_dir"`
-	ProxyIndex     string            `yaml:"proxy_index"`
-	ProxyPort      int               `yaml:"proxy_port"`
-	ProxyAddress   string            `yaml:"proxy_address"`
-	LDFlags        map[string]string `yaml:"ldflags"`
-	DependsOn      []string          `yaml:"depends_on"`
+	// Relative location of the service
+	Entrypoint string `yaml:"entrypoint"`
+	// Name of the output executable
+	Executable string `yaml:"executable"`
+	// A key-value list of environment variables
+	Env map[string]string `yaml:"env"`
+	// List of environment variable (.env) files
+	EnvFiles []string `yaml:"env_files"`
+	// The type of the proxy. Can be "service" "storage"
+	ProxyType string `yaml:"proxy_type"`
+	// The route handle/prefix to proxy requests to this service
+	ProxyHandle string `yaml:"proxy_handle"`
+	// Works only with "storage" proxy type. The directory to serve static files from
+	ProxyStaticDir string `yaml:"proxy_static_dir"`
+	// The index file to serve for storage applications
+	ProxyIndex string `yaml:"proxy_index"`
+	// The port of the service to proxy requests to
+	ProxyPort int `yaml:"proxy_port"`
+	// The address of the service to proxy requests to
+	ProxyAddress string `yaml:"proxy_address"`
+	// Rewrite (replace) part of the route when proxying. Format: requested_route:target_route
+	ProxyRouteRewrite string `yaml:"proxy_rewrite"`
+	// Flags to pass to the go build command
+	LDFlags map[string]string `yaml:"ldflags"`
+	// List of services this service depends on
+	DependsOn []string `yaml:"depends_on"`
 }
 
+// Creates a new default config
 func NewConfig() *Config {
 	f, err := os.ReadFile("go.mod")
 	if err != nil {
@@ -127,6 +127,7 @@ func NewConfig() *Config {
 	return c
 }
 
+// Creates the config file on disk. Errors if the file already exists
 func (c *Config) Create() error {
 	if _, err := os.Stat(DefaultConfigFile); errors.Is(err, os.ErrNotExist) {
 		fh, err := os.Create(DefaultConfigFile)
@@ -144,6 +145,7 @@ func (c *Config) Create() error {
 	return errors.New("file already exists")
 }
 
+// Reads the config from a file. Errors if the file doesn't exist or is malformed
 func NewConfigFromFile(filePath string) error {
 	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("bad config file '%s', or no config file specified", filePath)
@@ -162,6 +164,7 @@ func Get() *Config {
 	return configInstance
 }
 
+// Path returns the directory path of the config file
 func Path(configFilePath string) string {
 	pathParts := strings.Split(configFilePath, "/")
 	if len(pathParts) > 0 {

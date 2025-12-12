@@ -10,43 +10,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func StartHandler(cmd *cobra.Command, args []string) {
-	// get the right config file
-	configFile := config.DefaultConfigFile
-	// if len(args) == 1 {
-	// 	configFile = args[0]
-	// }
-	// read configuration
-	err := config.NewConfigFromFile(configFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	group := ""
-	if len(args) == 1 {
-		group = args[0]
-	}
-	// create service swarm
-	swm := swarm.NewServiceSwarm(group)
-	defer swm.KillAll()
-	// start services
-	if err := swm.RunServices(); err != nil {
-		log.Fatal(err)
-	}
-	// setup source watcher
-	sw, err := sourcewatcher.NewWatcher(swm)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer sw.Stop()
-	// check whether to start proxy
-	if config.Get().Proxy.Enabled {
-		// start proxy
-		p, err := proxy.NewServer()
+func StartHandler(configFile *string) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		// load config
+		if err := config.NewConfigFromFile(*configFile); err != nil {
+			log.Fatal(err)
+		}
+		group := ""
+		if len(args) == 1 {
+			group = args[0]
+		}
+		// create service swarm
+		serviceSwarm := swarm.NewServiceSwarm(group)
+		defer serviceSwarm.KillAll()
+		// start services
+		if err := serviceSwarm.RunServices(); err != nil {
+			log.Fatal(err)
+		}
+		// setup source watcher
+		watcher, err := sourcewatcher.NewWatcher(serviceSwarm)
 		if err != nil {
 			log.Fatal(err)
 		}
-		go p.Serve()
+		defer watcher.Stop()
+		// check whether to start proxy
+		if config.Get().Proxy.Enabled {
+			// start proxy
+			p, err := proxy.NewServer()
+			if err != nil {
+				log.Fatal(err)
+			}
+			go p.Serve()
+		}
+		// start source watcher
+		watcher.Start()
 	}
-	// start source watcher
-	sw.Start()
 }

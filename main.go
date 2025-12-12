@@ -3,11 +3,44 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/oblaxio/wingman/handlers"
+	"github.com/oblaxio/wingman/pkg/config"
+	"github.com/spf13/cobra"
 )
 
+var cfgFile string
+
 func main() {
+	var rootCmd = &cobra.Command{
+		Use:   "wingman",
+		Short: "wingman - a simple CLI to run and restart golang services",
+		Long:  "",
+		Run:   handlers.RootHandler,
+	}
+
+	var initCmd = &cobra.Command{
+		Use:     "init",
+		Aliases: []string{"i"},
+		Short:   "Initializes a new wingman project",
+		Run:     handlers.InitHandler,
+	}
+
+	var startCmd = &cobra.Command{
+		Use:     "start",
+		Aliases: []string{"s"},
+		Short:   "Runs the wingman project from the config file",
+		Args:    cobra.MaximumNArgs(1),
+		Run:     handlers.StartHandler(&cfgFile),
+	}
+
+	startCmd.Flags().StringVarP(&cfgFile, "config", "c", config.DefaultConfigFile, "path to the config file")
+
+	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(startCmd)
+
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Uhh.. Oh... somethign went wront while executing wingman '%s'", err)
+		fmt.Fprintf(os.Stderr, "Uhh.. Oh... somethign went wront while starting wingman '%s'", err)
 		os.Exit(1)
 	}
 }
