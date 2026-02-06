@@ -56,7 +56,10 @@ func NewService(service string, rootPath string) (*Service, error) {
 }
 
 func (s *Service) setEnvironmentVariables() {
-	envFiles := []string{}
+	if s.Env == nil {
+		s.Env = make(map[string]string)
+	}
+	var envFiles []string
 	if len(config.Get().EnvFiles) > 0 {
 		envFiles = append(envFiles, config.Get().EnvFiles...)
 	}
@@ -70,6 +73,7 @@ func (s *Service) setEnvironmentVariables() {
 				print.SvcErr(s.Executable, err.Error())
 				continue
 			}
+
 			maps.Copy(s.Env, envVars)
 		}
 	}
@@ -219,6 +223,9 @@ func (s *Service) Stop() error {
 }
 
 func (s *Service) Build() error {
+	if s.Entrypoint == "" {
+		return nil
+	}
 	p := []string{}
 	for i := 0; i < len(strings.Split(s.Entrypoint, "/")); i++ {
 		p = append(p, "..")

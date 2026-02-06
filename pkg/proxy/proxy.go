@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,8 +18,10 @@ import (
 )
 
 type Server struct {
-	server http.Server
-	cfg    *config.Config
+	server          http.Server
+	cfg             *config.Config
+	endpoints       map[string]config.ServiceConfig
+	sortedEndpoints []string
 }
 
 // Create a new http-proxy server ...
@@ -31,6 +34,23 @@ func NewServer() (*Server, error) {
 	}
 	s.server.Addr += s.cfg.Proxy.Address + ":" + strconv.Itoa(s.cfg.Proxy.Port)
 	s.server.Handler = s
+
+	s.endpoints = make(map[string]config.ServiceConfig)
+	for _, svc := range s.cfg.Services {
+		if svc.ProxyHandle != "" {
+			s.endpoints[svc.ProxyHandle] = svc
+		}
+	}
+
+	// sort endpoints by length (longest first) to ensure correct matching
+	s.sortedEndpoints = make([]string, 0, len(s.endpoints))
+	for endpoint := range s.endpoints {
+		s.sortedEndpoints = append(s.sortedEndpoints, endpoint)
+	}
+	sort.SliceStable(s.sortedEndpoints, func(i, j int) bool {
+		return len(s.sortedEndpoints[i]) > len(s.sortedEndpoints[j])
+	})
+
 	return s, nil
 }
 
@@ -49,13 +69,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		print.SvcProxy(r.Method + "@" + r.URL.String())
 	}
 
-	for _, svc := range s.cfg.Services {
-		if svc.ProxyHandle != "" && strings.HasPrefix(r.URL.String(), svc.ProxyHandle) {
-			switch svc.ProxyType {
+	for _, ep := range s.sortedEndpoints {
+		if s.endpoints[ep].ProxyHandle != "" && strings.HasPrefix(r.URL.String(), s.endpoints[ep].ProxyHandle) {
+			switch s.endpoints[ep].ProxyType {
 			case "service":
-				s.getService(w, r, svc)
+				s.getService(w, r, s.endpoints[ep])
+				return
 			case "static":
-				s.getFile(w, r.URL, svc)
+				s.getFile(w, r.URL, s.endpoints[ep])
+				return
 			default:
 			}
 		}

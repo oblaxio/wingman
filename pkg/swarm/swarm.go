@@ -82,12 +82,14 @@ func (sw *ServiceSwarm) RunServices() error {
 				s.StdErr = &stdErr
 				print.Info("calculating " + serviceName + " deepndencies")
 				go s.GetDependencies()
-				if err := s.Build(); err != nil {
-					print.SvcErr(s.Executable, "\n"+s.StdErr.String())
-					panic(err)
-				}
-				if err := s.Start(); err != nil {
-					panic(err)
+				if s.Entrypoint != "" {
+					if err := s.Build(); err != nil {
+						print.SvcErr(s.Executable, "\n"+s.StdErr.String())
+						panic(err)
+					}
+					if err := s.Start(); err != nil {
+						panic(err)
+					}
 				}
 				print.Info(s.Executable + " service started")
 				wg.Done()
