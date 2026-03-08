@@ -22,38 +22,48 @@ type ServiceSwarm struct {
 	startGroups  [][]string
 }
 
-func NewServiceSwarm(group ...string) *ServiceSwarm {
+func NewServiceSwarm(group ...string) (*ServiceSwarm, error) {
 	sw := &ServiceSwarm{
 		servicesList: make(map[string]bool),
 		loadedGroups: make(map[string]bool),
 		startGroups:  [][]string{},
 	}
 	if len(group) > 0 {
-		sw.getGroupedServices(group[0])
-		return sw
+		_, err := sw.getGroupedServices(group[0])
+		if err != nil {
+			return nil, err
+		}
+		return sw, nil
 	}
 	for serviceName := range config.Get().Services {
 		sw.servicesList[serviceName] = true
 	}
-	return sw
+	return sw, nil
 }
 
-func (sw *ServiceSwarm) getGroupedServices(group string) map[string]bool {
+func (sw *ServiceSwarm) getGroupedServices(group string) (map[string]bool, error) {
 	sw.loadedGroups[group] = true
-	for _, svc := range config.Get().ServiceGroups[group] {
+	serviceGroups, ok := config.Get().ServiceGroups[group]
+	if !ok {
+		return nil, fmt.Errorf("service group '%s' not found in wingman.yaml", group)
+	}
+	for _, svc := range serviceGroups {
 		if strings.HasPrefix(svc, groupPrefix) {
 			groupName := svc[1:]
 			if _, loaded := sw.loadedGroups[groupName]; loaded {
 				continue
 			} else {
-				nestedGroupedServices := sw.getGroupedServices(groupName)
+				nestedGroupedServices, err := sw.getGroupedServices(groupName)
+				if err != nil {
+					return nil, err
+				}
 				maps.Copy(sw.servicesList, nestedGroupedServices)
 			}
 		} else {
 			sw.servicesList[svc] = true
 		}
 	}
-	return sw.servicesList
+	return sw.servicesList, nil
 }
 
 func (sw *ServiceSwarm) Append(svc *service.Service) {
