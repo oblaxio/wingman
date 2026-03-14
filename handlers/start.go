@@ -21,7 +21,10 @@ func StartHandler(configFile *string) func(cmd *cobra.Command, args []string) {
 			group = args[0]
 		}
 		// create service swarm
-		serviceSwarm := swarm.NewServiceSwarm(group)
+		serviceSwarm, err := swarm.NewServiceSwarm(group)
+		if err != nil {
+			log.Fatal(err)
+		}
 		defer serviceSwarm.KillAll()
 		// start services
 		if err := serviceSwarm.RunServices(); err != nil {
