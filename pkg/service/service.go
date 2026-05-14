@@ -231,6 +231,9 @@ func (s *Service) Build() error {
 		p = append(p, "..")
 	}
 	outputPath := fmt.Sprintf("%s/%s", strings.Join(p, "/"), s.BuildDir)
+	if !strings.HasSuffix(outputPath, "/") {
+		outputPath += "/"
+	}
 	comArgs := []string{"build", "-o", outputPath}
 	if len(s.LDFlags) > 0 {
 		flags := []string{}
