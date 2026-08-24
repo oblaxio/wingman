@@ -128,7 +128,6 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request, service conf
 				1,
 			)
 		}
-		r.Header.Set("Origin", "http://"+r.Host)
 		proxyRoute(service.ProxyAddress, service.ProxyPort, w, r)
 	}
 }
